@@ -8,8 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Pix4D/cogito/github"
-	"github.com/Pix4D/cogito/testhelp"
+	"github.com/Pix4D/go-kit/github"
 	"gotest.tools/v3/assert"
 )
 
@@ -17,8 +16,7 @@ func TestGenerateInstallationToken(t *testing.T) {
 	clientID := "abcd1234"
 	installationID := 12345
 
-	privateKey, err := testhelp.GeneratePrivateKey(t, 2048)
-	assert.NilError(t, err)
+	privateKey := generatePrivateKey(t, 2048)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -30,7 +28,7 @@ func TestGenerateInstallationToken(t *testing.T) {
 			return
 		}
 
-		claims := testhelp.DecodeJWT(t, r, privateKey)
+		claims := decodeJWT(t, r, privateKey)
 		if claims.Issuer != clientID {
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprintln(w, "unauthorized: wrong JWT token")
@@ -50,7 +48,7 @@ func TestGenerateInstallationToken(t *testing.T) {
 		github.GitHubApp{
 			ClientId:       clientID,
 			InstallationId: installationID,
-			PrivateKey:     string(testhelp.EncodePrivateKeyToPEM(privateKey)),
+			PrivateKey:     string(encodePrivateKeyToPEM(privateKey)),
 		},
 	)
 

@@ -12,9 +12,8 @@ import (
 
 	"gotest.tools/v3/assert"
 
-	"github.com/Pix4D/cogito/github"
-	"github.com/Pix4D/cogito/retry"
-	"github.com/Pix4D/cogito/testhelp"
+	"github.com/Pix4D/go-kit/github"
+	"github.com/Pix4D/go-kit/retry"
 )
 
 type mockedResponse struct {
@@ -57,9 +56,9 @@ func TestGitHubStatusSuccessMockAPI(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	cfg := testhelp.FakeTestCfg
-	context := "cogito/test"
-	targetURL := "https://cogito.example/builds/job/42"
+	cfg := fakeTestCfg
+	context := "go-kit/test"
+	targetURL := "https://go-kit.example/builds/job/42"
 	now := time.Now()
 	desc := now.Format("15:04:05")
 
@@ -78,7 +77,7 @@ func TestGitHubStatusSuccessMockAPI(t *testing.T) {
 		}
 		ts := httptest.NewServer(http.HandlerFunc(handler))
 		defer ts.Close()
-		log := testhelp.MakeTestLog()
+		log := makeTestLog()
 		sleepSpy := SleepSpy{}
 		target := &github.Target{
 			Client: ts.Client(),
@@ -196,9 +195,9 @@ func TestGitHubStatusFailureMockAPI(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	cfg := testhelp.FakeTestCfg
-	context := "cogito/test"
-	targetURL := "https://cogito.example/builds/job/42"
+	cfg := fakeTestCfg
+	context := "go-kit/test"
+	targetURL := "https://go-kit.example/builds/job/42"
 	now := time.Now()
 	desc := now.Format("15:04:05")
 	upTo := 5 * time.Minute
@@ -222,7 +221,7 @@ func TestGitHubStatusFailureMockAPI(t *testing.T) {
 		ts := httptest.NewServer(http.HandlerFunc(handler))
 		defer ts.Close()
 		wantErr := fmt.Sprintf(tc.wantErr, ts.URL)
-		log := testhelp.MakeTestLog()
+		log := makeTestLog()
 		sleepSpy := SleepSpy{}
 		target := &github.Target{
 			Client: ts.Client(),
@@ -330,12 +329,12 @@ func TestGitHubStatusSuccessIntegration(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	cfg := testhelp.GitHubSecretsOrFail(t)
-	context := "cogito/test"
-	targetURL := "https://cogito.example/builds/job/42"
+	cfg := gitHubSecretsOrFail(t)
+	context := "go-kit/test"
+	targetURL := "https://go-kit.example/builds/job/42"
 	desc := time.Now().Format("15:04:05")
 	state := "success"
-	log := testhelp.MakeTestLog()
+	log := makeTestLog()
 	target := &github.Target{
 		Client: &http.Client{},
 		Server: github.ApiRoot(github.GhDefaultHostname),
@@ -371,9 +370,9 @@ func TestGitHubStatusFailureIntegration(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	cfg := testhelp.GitHubSecretsOrFail(t)
+	cfg := gitHubSecretsOrFail(t)
 	state := "success"
-	log := testhelp.MakeTestLog()
+	log := makeTestLog()
 
 	run := func(t *testing.T, tc testCase) {
 		// zero values are defaults
@@ -420,7 +419,7 @@ func TestGitHubStatusFailureIntegration(t *testing.T) {
 			wantErr: `failed to add state "success" for commit 751affd: 401 Unauthorized
 Body: {"message":"Bad credentials","documentation_url":"https://docs.github.com/rest","status":"401"}
 Hint: Either wrong credentials or PAT expired (check your email for expiration notice)
-Action: POST https://api.github.com/repos/pix4d/cogito-test-read-write/statuses/751affd155db7a00d936ee6e9f483deee69c5922
+Action: POST https://api.github.com/repos/pix4d/go-kit-test-read-write/statuses/751affd155db7a00d936ee6e9f483deee69c5922
 OAuth: X-Accepted-Oauth-Scopes: , X-Oauth-Scopes: `,
 			wantStatus: http.StatusUnauthorized,
 		},
@@ -443,7 +442,7 @@ OAuth: X-Accepted-Oauth-Scopes: repo, X-Oauth-Scopes: repo:status`,
 			wantErr: `failed to add state "success" for commit e576e3a: 422 Unprocessable Entity
 Body: {"message":"No commit found for SHA: e576e3aa7aaaa048b396e2f34fa24c9cf4d1e822","documentation_url":"https://docs.github.com/rest/commits/statuses#create-a-commit-status","status":"422"}
 Hint: none
-Action: POST https://api.github.com/repos/pix4d/cogito-test-read-write/statuses/e576e3aa7aaaa048b396e2f34fa24c9cf4d1e822
+Action: POST https://api.github.com/repos/pix4d/go-kit-test-read-write/statuses/e576e3aa7aaaa048b396e2f34fa24c9cf4d1e822
 OAuth: X-Accepted-Oauth-Scopes: , X-Oauth-Scopes: repo:status`,
 			wantStatus: http.StatusUnprocessableEntity,
 		},

@@ -1,7 +1,3 @@
-// Package github implements the GitHub APIs used by Cogito (Commit status API).
-//
-// See the README and CONTRIBUTING files for additional information, caveats about GitHub
-// API and imposed limits, and reference to official documentation.
 package github
 
 import (
@@ -18,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Pix4D/cogito/retry"
+	"github.com/Pix4D/go-kit/retry"
 )
 
 // StatusError is one of the possible errors returned by the github package.

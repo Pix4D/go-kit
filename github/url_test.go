@@ -16,75 +16,75 @@ func TestParseGitPseudoURLSuccess(t *testing.T) {
 	}{
 		{
 			name:  "valid SSH URL",
-			inURL: "git@github.com:Pix4D/cogito.git",
+			inURL: "git@github.com:Pix4D/go-kit.git",
 			wantGU: GitURL{
 				URL: &url.URL{
 					Scheme: "ssh",
 					User:   url.User("git"),
 					Host:   "github.com",
-					Path:   "/Pix4D/cogito.git",
+					Path:   "/Pix4D/go-kit.git",
 				},
 				Owner:    "Pix4D",
-				Repo:     "cogito",
-				FullName: "Pix4D/cogito",
+				Repo:     "go-kit",
+				FullName: "Pix4D/go-kit",
 			},
 		},
 		{
 			name:  "valid HTTPS URL",
-			inURL: "https://github.com/Pix4D/cogito.git",
+			inURL: "https://github.com/Pix4D/go-kit.git",
 			wantGU: GitURL{
 				URL: &url.URL{
 					Scheme: "https",
 					Host:   "github.com",
-					Path:   "/Pix4D/cogito.git",
+					Path:   "/Pix4D/go-kit.git",
 				},
 				Owner:    "Pix4D",
-				Repo:     "cogito",
-				FullName: "Pix4D/cogito",
+				Repo:     "go-kit",
+				FullName: "Pix4D/go-kit",
 			},
 		},
 		{
 			name:  "valid HTTP URL",
-			inURL: "http://github.com/Pix4D/cogito.git",
+			inURL: "http://github.com/Pix4D/go-kit.git",
 			wantGU: GitURL{
 				URL: &url.URL{
 					Scheme: "http",
 					Host:   "github.com",
-					Path:   "/Pix4D/cogito.git",
+					Path:   "/Pix4D/go-kit.git",
 				},
 				Owner:    "Pix4D",
-				Repo:     "cogito",
-				FullName: "Pix4D/cogito",
+				Repo:     "go-kit",
+				FullName: "Pix4D/go-kit",
 			},
 		},
 		{
 			name:  "valid HTTPS URL with username:password",
-			inURL: "https://username:password@github.com/Pix4D/cogito.git",
+			inURL: "https://username:password@github.com/Pix4D/go-kit.git",
 			wantGU: GitURL{
 				URL: &url.URL{
 					Scheme: "https",
 					User:   url.UserPassword("username", "password"),
 					Host:   "github.com",
-					Path:   "/Pix4D/cogito.git",
+					Path:   "/Pix4D/go-kit.git",
 				},
 				Owner:    "Pix4D",
-				Repo:     "cogito",
-				FullName: "Pix4D/cogito",
+				Repo:     "go-kit",
+				FullName: "Pix4D/go-kit",
 			},
 		},
 		{
 			name:  "valid HTTP URL with username:password",
-			inURL: "http://username:password@github.com/Pix4D/cogito.git",
+			inURL: "http://username:password@github.com/Pix4D/go-kit.git",
 			wantGU: GitURL{
 				URL: &url.URL{
 					Scheme: "http",
 					User:   url.UserPassword("username", "password"),
 					Host:   "github.com",
-					Path:   "/Pix4D/cogito.git",
+					Path:   "/Pix4D/go-kit.git",
 				},
 				Owner:    "Pix4D",
-				Repo:     "cogito",
-				FullName: "Pix4D/cogito",
+				Repo:     "go-kit",
+				FullName: "Pix4D/go-kit",
 			},
 		},
 	}
@@ -92,7 +92,6 @@ func TestParseGitPseudoURLSuccess(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			gitUrl, err := ParseGitPseudoURL(tc.inURL)
-
 			if err != nil {
 				t.Fatalf("\nhave: %s\nwant: <no error>", err)
 			}
@@ -119,32 +118,32 @@ func TestParseGitPseudoURLFailure(t *testing.T) {
 		},
 		{
 			name:    "invalid SSH URL",
-			inURL:   "git@github.com/Pix4D/cogito.git",
-			wantErr: "invalid git SSH URL git@github.com/Pix4D/cogito.git: want exactly one ':'",
+			inURL:   "git@github.com/Pix4D/go-kit.git",
+			wantErr: "invalid git SSH URL git@github.com/Pix4D/go-kit.git: want exactly one ':'",
 		},
 		{
 			name:    "invalid HTTPS URL",
-			inURL:   "https://github.com:Pix4D/cogito.git",
+			inURL:   "https://github.com:Pix4D/go-kit.git",
 			wantErr: `invalid port ":Pix4D" after host`,
 		},
 		{
 			name:    "invalid HTTP URL",
-			inURL:   "http://github.com:Pix4D/cogito.git",
+			inURL:   "http://github.com:Pix4D/go-kit.git",
 			wantErr: `invalid port ":Pix4D" after host`,
 		},
 		{
 			name:    "too few path components",
-			inURL:   "http://github.com/cogito.git",
-			wantErr: "invalid git URL: path: want: 3 components; have: 2 [ cogito.git]",
+			inURL:   "http://github.com/go-kit.git",
+			wantErr: "invalid git URL: path: want: 3 components; have: 2 [ go-kit.git]",
 		},
 		{
 			name:    "too many path components",
-			inURL:   "http://github.com/1/2/cogito.git",
-			wantErr: "invalid git URL: path: want: 3 components; have: 4 [ 1 2 cogito.git]",
+			inURL:   "http://github.com/1/2/go-kit.git",
+			wantErr: "invalid git URL: path: want: 3 components; have: 4 [ 1 2 go-kit.git]",
 		},
 		{
 			name:    "No leaked password in invalid URL with username:password",
-			inURL:   "http://username:password@github.com/Pix4D/cogito.git\n",
+			inURL:   "http://username:password@github.com/Pix4D/go-kit.git\n",
 			wantErr: `net/url: invalid control character in URL`,
 		},
 	}

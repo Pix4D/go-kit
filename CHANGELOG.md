@@ -3,6 +3,9 @@
 ## [Unreleased]
 
 ### Added
+
+- Package `github`, imported from cogito.
+
 ### Changed
 ### Deprecated
 ### Removed
