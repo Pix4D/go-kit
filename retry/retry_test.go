@@ -6,10 +6,9 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"slices"
 	"testing"
 	"time"
-
-	"github.com/go-quicktest/qt"
 
 	"github.com/Pix4D/go-kit/retry"
 )
@@ -26,9 +25,12 @@ func TestRetrySuccessOnFirstAttempt(t *testing.T) {
 	workFn := func() error { return nil }
 
 	err := rtr.Do(retry.ConstantBackoff, retryOnError, workFn)
-
-	qt.Assert(t, qt.IsNil(err))
-	qt.Assert(t, qt.IsNil(sleeps))
+	if err != nil {
+		t.Errorf("%s:\nhave: %v\nwant: %v", "retry.Do", err, "<no error>")
+	}
+	if have, want := sleeps, []time.Duration{}; slices.Compare(have, want) != 0 {
+		t.Errorf("%s:\nhave: %v\nwant: %v", "sleeps", have, want)
+	}
 }
 
 func TestRetrySuccessOnThirdAttempt(t *testing.T) {
@@ -50,10 +52,13 @@ func TestRetrySuccessOnThirdAttempt(t *testing.T) {
 	}
 
 	err := rtr.Do(retry.ConstantBackoff, retryOnError, workFn)
-
-	qt.Assert(t, qt.IsNil(err))
+	if err != nil {
+		t.Errorf("%s:\nhave: %v\nwant: %v", "retry.Do", err, "<no error>")
+	}
 	wantSleeps := []time.Duration{time.Second, time.Second}
-	qt.Assert(t, qt.DeepEquals(sleeps, wantSleeps))
+	if have, want := sleeps, wantSleeps; slices.Compare(have, want) != 0 {
+		t.Errorf("%s:\nhave: %v\nwant: %v", "sleeps", have, want)
+	}
 }
 
 func TestRetryFailureRunOutOfTime(t *testing.T) {
@@ -70,11 +75,15 @@ func TestRetryFailureRunOutOfTime(t *testing.T) {
 
 	err := rtr.Do(retry.ConstantBackoff, retryOnError, workFn)
 
-	qt.Assert(t, qt.ErrorIs(err, ErrAlwaysFail))
+	if have, want := err, ErrAlwaysFail; !errors.Is(have, want) {
+		t.Errorf("%s:\nhave: %v\nwant: %v", "retry.Do", have, want)
+	}
 	wantSleeps := []time.Duration{
 		time.Second, time.Second, time.Second, time.Second, time.Second,
 	}
-	qt.Assert(t, qt.DeepEquals(sleeps, wantSleeps))
+	if have, want := sleeps, wantSleeps; slices.Compare(have, want) != 0 {
+		t.Errorf("%s:\nhave: %v\nwant: %v", "sleeps", have, want)
+	}
 }
 
 func TestRetryExponentialBackOff(t *testing.T) {
@@ -91,11 +100,15 @@ func TestRetryExponentialBackOff(t *testing.T) {
 
 	err := rtr.Do(retry.ExponentialBackoff, retryOnError, workFn)
 
-	qt.Assert(t, qt.ErrorIs(err, ErrAlwaysFail))
+	if have, want := err, ErrAlwaysFail; !errors.Is(have, want) {
+		t.Errorf("%s:\nhave: %v\nwant: %v", "retry.Do", have, want)
+	}
 	wantSleeps := []time.Duration{
 		time.Second, 2 * time.Second, 4 * time.Second, 4 * time.Second,
 	}
-	qt.Assert(t, qt.DeepEquals(sleeps, wantSleeps))
+	if have, want := sleeps, wantSleeps; slices.Compare(have, want) != 0 {
+		t.Errorf("%s:\nhave: %v\nwant: %v", "sleeps", have, want)
+	}
 }
 
 func TestRetryFailureHardFailOnSecondAttempt(t *testing.T) {
@@ -128,9 +141,13 @@ func TestRetryFailureHardFailOnSecondAttempt(t *testing.T) {
 
 	err := rtr.Do(retry.ConstantBackoff, classifierFn, workFn)
 
-	qt.Assert(t, qt.ErrorIs(err, ErrUnrecoverable))
+	if have, want := err, ErrUnrecoverable; !errors.Is(have, want) {
+		t.Errorf("%s:\nhave: %v\nwant: %v", "retry.Do", have, want)
+	}
 	wantSleeps := []time.Duration{time.Second}
-	qt.Assert(t, qt.DeepEquals(sleeps, wantSleeps))
+	if have, want := sleeps, wantSleeps; slices.Compare(have, want) != 0 {
+		t.Errorf("%s:\nhave: %v\nwant: %v", "sleeps", have, want)
+	}
 }
 
 func retryOnError(err error) retry.Action {
