@@ -1,10 +1,8 @@
 package sets_test
 
 import (
-	"fmt"
+	"slices"
 	"testing"
-
-	"github.com/go-quicktest/qt"
 
 	"github.com/Pix4D/go-kit/sets"
 )
@@ -20,11 +18,16 @@ func TestFromInt(t *testing.T) {
 
 	test := func(t *testing.T, tc testCase) {
 		s := sets.From(tc.items...)
-		sorted := s.OrderedList()
 
-		qt.Assert(t, qt.Equals(s.Size(), tc.wantSize))
-		qt.Assert(t, qt.DeepEquals(sorted, tc.wantList))
-		qt.Assert(t, qt.Equals(fmt.Sprint(s), tc.wantString))
+		if have, want := s.Size(), tc.wantSize; have != want {
+			t.Errorf("%s:\nhave: %v\nwant: %v", "Size", have, want)
+		}
+		if have, want := s.OrderedList(), tc.wantList; slices.Compare(have, want) != 0 {
+			t.Errorf("%s:\nhave: %v\nwant: %v", "OrderedList", have, want)
+		}
+		if have, want := s.String(), tc.wantString; have != want {
+			t.Errorf("%s:\nhave: %v\nwant: %v", "String", have, want)
+		}
 	}
 
 	testCases := []testCase{
@@ -67,11 +70,16 @@ func TestFromString(t *testing.T) {
 
 	test := func(t *testing.T, tc testCase) {
 		s := sets.From(tc.items...)
-		sorted := s.OrderedList()
 
-		qt.Assert(t, qt.Equals(s.Size(), tc.wantSize))
-		qt.Assert(t, qt.DeepEquals(sorted, tc.wantList))
-		qt.Assert(t, qt.Equals(fmt.Sprint(s), tc.wantString))
+		if have, want := s.Size(), tc.wantSize; have != want {
+			t.Errorf("%s:\nhave: %v\nwant: %v", "Size", have, want)
+		}
+		if have, want := s.OrderedList(), tc.wantList; slices.Compare(have, want) != 0 {
+			t.Errorf("%s:\nhave: %v\nwant: %v", "OrderedList", have, want)
+		}
+		if have, want := s.String(), tc.wantString; have != want {
+			t.Errorf("%s:\nhave: %v\nwant: %v", "String", have, want)
+		}
 	}
 
 	testCases := []testCase{
@@ -99,9 +107,10 @@ func TestDifference(t *testing.T) {
 
 	test := func(t *testing.T, tc testCase) {
 		result := tc.s.Difference(tc.x)
-		sorted := result.OrderedList()
 
-		qt.Assert(t, qt.DeepEquals(sorted, tc.wantList))
+		if have, want := result.OrderedList(), tc.wantList; slices.Compare(have, want) != 0 {
+			t.Errorf("%s:\nhave: %v\nwant: %v", "OrderedList", have, want)
+		}
 	}
 
 	testCases := []testCase{
@@ -152,9 +161,10 @@ func TestIntersection(t *testing.T) {
 
 	test := func(t *testing.T, tc testCase) {
 		result := tc.s.Intersection(tc.x)
-		sorted := result.OrderedList()
 
-		qt.Assert(t, qt.DeepEquals(sorted, tc.wantList))
+		if have, want := result.OrderedList(), tc.wantList; slices.Compare(have, want) != 0 {
+			t.Errorf("%s:\nhave: %v\nwant: %v", "OrderedList", have, want)
+		}
 	}
 
 	testCases := []testCase{
@@ -211,9 +221,10 @@ func TestUnion(t *testing.T) {
 
 	test := func(t *testing.T, tc testCase) {
 		result := tc.s.Union(tc.x)
-		sorted := result.OrderedList()
 
-		qt.Assert(t, qt.DeepEquals(sorted, tc.wantList))
+		if have, want := result.OrderedList(), tc.wantList; slices.Compare(have, want) != 0 {
+			t.Errorf("%s:\nhave: %v\nwant: %v", "OrderedList", have, want)
+		}
 	}
 
 	testCases := []testCase{
@@ -273,8 +284,12 @@ func TestRemoveFound(t *testing.T) {
 
 		found := s.Remove(tc.remove)
 
-		qt.Assert(t, qt.DeepEquals(s.OrderedList(), tc.wantList))
-		qt.Assert(t, qt.IsTrue(found))
+		if have, want := s.OrderedList(), tc.wantList; slices.Compare(have, want) != 0 {
+			t.Errorf("%s:\nhave: %v\nwant: %v", "OrderedList", have, want)
+		}
+		if have, want := found, true; have != want {
+			t.Errorf("%s:\nhave: %v\nwant: %v", "found", have, want)
+		}
 	}
 
 	testCases := []testCase{
@@ -309,8 +324,12 @@ func TestRemoveNotFound(t *testing.T) {
 
 		found := s.Remove(tc.remove)
 
-		qt.Assert(t, qt.DeepEquals(s.OrderedList(), tc.items))
-		qt.Assert(t, qt.IsFalse(found))
+		if have, want := s.OrderedList(), tc.items; slices.Compare(have, want) != 0 {
+			t.Errorf("%s:\nhave: %v\nwant: %v", "OrderedList", have, want)
+		}
+		if have, want := found, false; have != want {
+			t.Errorf("%s:\nhave: %v\nwant: %v", "found", have, want)
+		}
 	}
 
 	testCases := []testCase{
@@ -343,7 +362,10 @@ func TestAdd(t *testing.T) {
 		for _, item := range tc.items {
 			s.Add(item)
 		}
-		qt.Assert(t, qt.DeepEquals(s.OrderedList(), tc.wantList))
+
+		if have, want := s.OrderedList(), tc.wantList; slices.Compare(have, want) != 0 {
+			t.Errorf("%s:\nhave: %v\nwant: %v", "OrderedList", have, want)
+		}
 	}
 
 	testCases := []testCase{
