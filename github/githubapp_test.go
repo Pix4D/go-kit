@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/Pix4D/go-kit/github"
-	"gotest.tools/v3/assert"
 )
 
 func TestGenerateInstallationToken(t *testing.T) {
@@ -51,9 +50,12 @@ func TestGenerateInstallationToken(t *testing.T) {
 			PrivateKey:     string(encodePrivateKeyToPEM(privateKey)),
 		},
 	)
-
-	assert.NilError(t, err)
-	assert.Equal(t, "dummy_installation_token", gotToken)
+	if err != nil {
+		t.Fatalf("%s\nhave: %v\nwant: %v", "token: error", err, "<no error>")
+	}
+	if have, want := gotToken, "dummy_installation_token"; have != want {
+		t.Fatalf("%s\nhave: %v\nwant: %v", "token", have, want)
+	}
 }
 
 func TestGitHubAppIsZero(t *testing.T) {
@@ -64,8 +66,9 @@ func TestGitHubAppIsZero(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		got := tc.app.IsZero()
-		assert.Equal(t, got, tc.want)
+		if have, want := tc.app.IsZero(), tc.want; have != want {
+			t.Fatalf("%s\nhave: %v\nwant: %v", "IsZero", have, want)
+		}
 	}
 
 	testCases := []testCase{
