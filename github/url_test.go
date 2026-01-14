@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"gotest.tools/v3/assert"
 )
 
 func TestParseGitPseudoURLSuccess(t *testing.T) {
@@ -152,7 +151,12 @@ func TestParseGitPseudoURLFailure(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := ParseGitPseudoURL(tc.inURL)
 
-			assert.Error(t, err, tc.wantErr)
+			if err == nil {
+				t.Fatalf("\nhave: %v\nwant: %v", "<no error>", tc.wantErr)
+			}
+			if have, want := err.Error(), tc.wantErr; have != want {
+				t.Fatalf("\nhave: %v\nwant: %v", have, want)
+			}
 		})
 	}
 }
