@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strconv"
 	"testing"
 	"time"
-
-	"gotest.tools/v3/assert"
 
 	"github.com/Pix4D/go-kit/github"
 	"github.com/Pix4D/go-kit/retry"
@@ -93,9 +92,13 @@ func TestGitHubStatusSuccessMockAPI(t *testing.T) {
 		ghStatus := github.NewCommitStatus(target, cfg.Token, cfg.Owner, cfg.Repo, context, log)
 
 		err := ghStatus.Add(ctx, cfg.SHA, "success", targetURL, desc)
+		if err != nil {
+			t.Fatal("Add:", err)
+		}
 
-		assert.NilError(t, err)
-		assert.DeepEqual(t, sleepSpy.sleeps, tc.wantSleeps)
+		if have, want := sleepSpy.sleeps, tc.wantSleeps; slices.Compare(have, want) != 0 {
+			t.Errorf("%s:\nhave: %v\nwant: %v", "sleeps", have, want)
+		}
 	}
 
 	testCases := []testCase{
@@ -238,14 +241,27 @@ func TestGitHubStatusFailureMockAPI(t *testing.T) {
 
 		err := ghStatus.Add(ctx, cfg.SHA, "success", targetURL, desc)
 
-		assert.Error(t, err, wantErr)
-		var ghError *github.StatusError
-		if !errors.As(err, &ghError) {
-			t.Fatalf("\nhave: %s\nwant: type github.StatusError", err)
+		if err == nil {
+			t.Fatalf("%s\nhave: %v\nwant: %v", "Add", "<no error>", wantErr)
 		}
-		assert.DeepEqual(t, sleepSpy.sleeps, tc.wantSleeps)
-		wantStatus := tc.response[len(tc.response)-1].status
-		assert.Equal(t, ghError.StatusCode, wantStatus)
+		if have, want := err.Error(), wantErr; have != want {
+			t.Errorf("%s\nhave: %v\nwant: %v", "Add", have, want)
+		}
+		{
+			var ghError *github.StatusError
+			if !errors.As(err, &ghError) {
+				t.Errorf("%s\nhave: %T\nwant: %T", "Add: error type", err, ghError)
+			} else {
+				wantStatus := tc.response[len(tc.response)-1].status
+				if have, want := ghError.StatusCode, wantStatus; have != want {
+					t.Errorf("%s\nhave: %v\nwant: %v", "StatusCode", have, want)
+				}
+			}
+		}
+
+		if have, want := sleepSpy.sleeps, tc.wantSleeps; slices.Compare(have, want) != 0 {
+			t.Errorf("%s:\nhave: %v\nwant: %v", "sleeps", have, want)
+		}
 	}
 
 	testCases := []testCase{
@@ -348,8 +364,9 @@ func TestGitHubStatusSuccessIntegration(t *testing.T) {
 	ghStatus := github.NewCommitStatus(target, cfg.Token, cfg.Owner, cfg.Repo, context, log)
 
 	err := ghStatus.Add(ctx, cfg.SHA, state, targetURL, desc)
-
-	assert.NilError(t, err)
+	if err != nil {
+		t.Fatal("Add:", err)
+	}
 }
 
 func TestGitHubStatusFailureIntegration(t *testing.T) {
@@ -402,14 +419,22 @@ func TestGitHubStatusFailureIntegration(t *testing.T) {
 		ghStatus := github.NewCommitStatus(target, tc.token, tc.owner, tc.repo, "dummy-context", log)
 		err := ghStatus.Add(ctx, tc.sha, state, "dummy-url", "dummy-desc")
 
-		assert.Assert(t, err != nil)
-		haveErr := err.Error()
-		assert.Equal(t, haveErr, tc.wantErr)
-		var ghError *github.StatusError
-		if !errors.As(err, &ghError) {
-			t.Fatalf("\nhave: %s\nwant: type github.StatusError", err)
+		if err == nil {
+			t.Fatalf("%s\nhave: %v\nwant: %v", "Add", "<no error>", tc.wantErr)
 		}
-		assert.Equal(t, ghError.StatusCode, tc.wantStatus)
+		if have, want := err.Error(), tc.wantErr; have != want {
+			t.Errorf("%s\nhave: %v\nwant: %v", "Add", have, want)
+		}
+		{
+			var ghError *github.StatusError
+			if !errors.As(err, &ghError) {
+				t.Errorf("%s\nhave: %T\nwant: %T", "Add: error type", err, ghError)
+			} else {
+				if have, want := ghError.StatusCode, tc.wantStatus; have != want {
+					t.Errorf("%s\nhave: %v\nwant: %v", "StatusCode", have, want)
+				}
+			}
+		}
 	}
 
 	testCases := []testCase{
@@ -469,8 +494,11 @@ func TestApiRoot(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		got := github.ApiRoot(tc.hostname)
-		assert.Equal(t, got, tc.wantAPI)
+		root := github.ApiRoot(tc.hostname)
+
+		if have, want := root, tc.wantAPI; have != want {
+			t.Errorf("%s\nhave: %v\nwant: %v", "ApiRoot", have, want)
+		}
 	}
 
 	testCases := []testCase{
