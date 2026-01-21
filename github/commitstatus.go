@@ -135,7 +135,7 @@ func (cs CommitStatus) Add(ctx context.Context, sha, state, targetURL, descripti
 		if err != nil {
 			return fmt.Errorf("http client Do: %w", err)
 		}
-		defer resp.Body.Close()
+		defer resp.Body.Close() //nolint:errcheck
 
 		elapsed := time.Since(start)
 		remaining := resp.Header.Get("X-RateLimit-Remaining")

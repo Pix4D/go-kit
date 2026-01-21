@@ -61,7 +61,7 @@ func TestGitHubStatusSuccessMockAPI(t *testing.T) {
 	now := time.Now()
 	desc := now.Format("15:04:05")
 
-	run := func(t *testing.T, tc testCase) {
+	test := func(t *testing.T, tc testCase) {
 		attempt := 0
 		handler := func(w http.ResponseWriter, r *http.Request) {
 			response := tc.response[attempt]
@@ -71,7 +71,10 @@ func TestGitHubStatusSuccessMockAPI(t *testing.T) {
 			w.Header().Set("x-ratelimit-remaining", response.rateLimitRemaining)
 			w.Header().Set("x-ratelimit-reset", strconv.Itoa(int(response.rateLimitReset)))
 			w.WriteHeader(response.status)
-			fmt.Fprintln(w, response.body)
+			_, err := fmt.Fprintln(w, response.body)
+			if err != nil {
+				t.Fatalf("writing response body: %s", err)
+			}
 			attempt++
 		}
 		ts := httptest.NewServer(http.HandlerFunc(handler))
@@ -180,7 +183,7 @@ func TestGitHubStatusSuccessMockAPI(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) { run(t, tc) })
+		t.Run(tc.name, func(t *testing.T) { test(t, tc) })
 	}
 }
 
@@ -218,7 +221,10 @@ func TestGitHubStatusFailureMockAPI(t *testing.T) {
 			// for better control.
 			w.Header().Set("Date", now.Format(time.RFC1123))
 			w.WriteHeader(response.status)
-			fmt.Fprintln(w, response.body)
+			_, err := fmt.Fprintln(w, response.body)
+			if err != nil {
+				t.Fatalf("writing response body: %s", err)
+			}
 			attempt++
 		}
 		ts := httptest.NewServer(http.HandlerFunc(handler))
