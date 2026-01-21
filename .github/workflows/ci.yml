@@ -1,0 +1,40 @@
+# See https://docs.github.com/en/actions/reference/
+
+on: [push]
+
+name: ci
+
+env:
+  go-version: 1.25.x
+  golangci-version: v2.8.0
+
+jobs:
+  all:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.go-version }}
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          # By default, actions/checkout will persist the GITHUB_TOKEN, so that further
+          # steps in the job can perform authenticated git commands (that is: WRITE to
+          # the repo). Following the Principle of least privilege, we disable this as long
+          # as we don't need it.
+          persist-credentials: false
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: ${{ env.golangci-version }}
+      - run: go build ./...
+      - run: go test -coverprofile=coverate.out ./...
+        env:
+          GOKIT_TEST_OAUTH_TOKEN: ${{ secrets.GOKIT_TEST_OAUTH_TOKEN }}
+          GOKIT_TEST_GH_APP_PRIVATE_KEY: ${{ secrets.GOKIT_TEST_GH_APP_PRIVATE_KEY }}
+          GOKIT_TEST_COMMIT_SHA: ${{ vars.GOKIT_TEST_COMMIT_SHA }}
+          GOKIT_TEST_REPO_NAME: ${{ vars.GOKIT_TEST_REPO_NAME }}
+          GOKIT_TEST_REPO_OWNER: ${{ vars.GOKIT_TEST_REPO_OWNER }}
+          GOKIT_TEST_GH_APP_CLIENT_ID: ${{ vars.GOKIT_TEST_GH_APP_CLIENT_ID }}
+          GOKIT_TEST_GH_APP_INSTALLATION_ID: ${{ vars.GOKIT_TEST_GH_APP_INSTALLATION_ID }}
