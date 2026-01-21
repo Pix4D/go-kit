@@ -33,6 +33,6 @@
 
 
 
-[Unreleased]: https://github.com/pix4d/go-kit/compare/v0.0.2...HEAD
-[v0.2.0]:     https://github.com/pix4d/go-kit/compare/v0.0.1...v0.2.0
+[Unreleased]: https://github.com/pix4d/go-kit/compare/v0.2.0...HEAD
+[v0.2.0]:     https://github.com/pix4d/go-kit/compare/v0.1.0...v0.2.0
 [v0.1.0]:     https://github.com/pix4d/go-kit/compare/v0.0.0...v0.1.0
