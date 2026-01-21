@@ -250,8 +250,8 @@ func TestGitHubStatusFailureMockAPI(t *testing.T) {
 		if err == nil {
 			t.Fatalf("%s\nhave: %v\nwant: %v", "Add", "<no error>", wantErr)
 		}
-		if have, want := err.Error(), wantErr; have != want {
-			t.Errorf("%s\nhave: %v\nwant: %v", "Add", have, want)
+		if diff := diff(err.Error(), wantErr); diff != "" {
+			t.Fatalf("Add: error mismatch:\n%s", diff)
 		}
 		{
 			var ghError *github.StatusError
@@ -428,8 +428,8 @@ func TestGitHubStatusFailureIntegration(t *testing.T) {
 		if err == nil {
 			t.Fatalf("%s\nhave: %v\nwant: %v", "Add", "<no error>", tc.wantErr)
 		}
-		if have, want := err.Error(), tc.wantErr; have != want {
-			t.Errorf("%s\nhave: %v\nwant: %v", "Add", have, want)
+		if diff := diff(err.Error(), tc.wantErr); diff != "" {
+			t.Fatalf("Add: error mismatch:\n%s", diff)
 		}
 		{
 			var ghError *github.StatusError
