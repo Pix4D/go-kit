@@ -1,0 +1,68 @@
+# Install `task` from https://taskfile.dev
+# Run `task --list` to start.
+
+version: "3"
+
+# Keep in sync with the values in .github/workflows
+vars:
+  GOLANGCI_VERSION: v2.8.0
+  GOTESTSUM_VERSION: v1.13.0
+
+tasks:
+  install:deps:
+    desc: Install tool dependencies.
+    cmds:
+      - go install github.com/golangci/golangci-lint/cmd/golangci-lint@{{.GOLANGCI_VERSION}}
+      - go install gotest.tools/gotestsum@{{.GOTESTSUM_VERSION}}
+
+  lint:
+    desc: Lint the code.
+    cmds:
+      - golangci-lint run ./...
+
+  build:
+    desc: Run go build
+    cmds:
+      - go build ./...
+
+  test:env:
+    desc: |
+      Run what is passed on the command-line with a shell environment containing the secrets needed for the integration tests.
+      Example: task test:env -- go test -count=1 -run 'TestFooIntegration' ./github"
+    cmds:
+      - '{{ .CLI_ARGS }}'
+    env: &test-env
+      GOKIT_TEST_COMMIT_SHA: '{{default "751affd155db7a00d936ee6e9f483deee69c5922" .GOKIT_TEST_COMMIT_SHA}}'
+      GOKIT_TEST_OAUTH_TOKEN:
+        sh: 'echo {{default "$(gopass show gokit/test_oauth_token)" .GOKIT_TEST_OAUTH_TOKEN}}'
+      GOKIT_TEST_REPO_NAME: '{{default "go-kit-test-read-write" .GOKIT_TEST_REPO_NAME}}'
+      GOKIT_TEST_REPO_OWNER: '{{default "pix4d" .GOKIT_TEST_REPO_OWNER}}'
+      GOKIT_TEST_GH_APP_CLIENT_ID: '{{default "Iv23lir9pyQlqmweDPbz" .GOKIT_TEST_GH_APP_CLIENT_ID}}'
+      GOKIT_TEST_GH_APP_INSTALLATION_ID: '{{default "64650729" .GOKIT_TEST_GH_APP_INSTALLATION_ID}}'
+      GOKIT_TEST_GH_APP_PRIVATE_KEY:
+        sh: 'echo "{{default "$(gopass show gokit/test_gh_app_private_key)" .GOKIT_TEST_GH_APP_PRIVATE_KEY}}"'
+
+  test:unit:
+    desc: Run the unit tests.
+    cmds:
+      # One day I will understand how to use -coverpkg=./... :-(
+      # TODO: can we remove -short ?
+      - gotestsum -- -short -coverprofile=coverage.out ./...
+    env: *test-env
+
+  test:all:
+    desc: Run all the tests (unit + integration). Use this target to get total coverage.
+    cmds:
+      - gotestsum -- -coverprofile=coverage.out ./...
+    env: *test-env
+
+  browser:
+    desc: "Show code coverage in browser (usage: task test:<subtarget> browser)"
+    cmds:
+      - go tool cover -html=coverage.out
+
+  clean:
+    desc: Delete build artifacts
+    cmds:
+      - rm -f coverage.out
+      - rm -r -f bin

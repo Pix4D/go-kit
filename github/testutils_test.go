@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/go-cmp/cmp"
 )
 
 // ghTestCfg contains the secrets needed to run integration tests against the
@@ -144,4 +145,12 @@ func removeTime(groups []string, a slog.Attr) slog.Attr {
 		return slog.Attr{}
 	}
 	return a
+}
+
+// diff compares have and want line by line, and return difference if exists.
+func diff[T any](have, want T) string {
+	if diff := cmp.Diff(want, have); diff != "" {
+		return fmt.Sprintf("--- want\n+++ have\n%s", diff)
+	}
+	return ""
 }

@@ -61,7 +61,7 @@ func TestGitHubStatusSuccessMockAPI(t *testing.T) {
 	now := time.Now()
 	desc := now.Format("15:04:05")
 
-	run := func(t *testing.T, tc testCase) {
+	test := func(t *testing.T, tc testCase) {
 		attempt := 0
 		handler := func(w http.ResponseWriter, r *http.Request) {
 			response := tc.response[attempt]
@@ -71,7 +71,10 @@ func TestGitHubStatusSuccessMockAPI(t *testing.T) {
 			w.Header().Set("x-ratelimit-remaining", response.rateLimitRemaining)
 			w.Header().Set("x-ratelimit-reset", strconv.Itoa(int(response.rateLimitReset)))
 			w.WriteHeader(response.status)
-			fmt.Fprintln(w, response.body)
+			_, err := fmt.Fprintln(w, response.body)
+			if err != nil {
+				t.Fatalf("writing response body: %s", err)
+			}
 			attempt++
 		}
 		ts := httptest.NewServer(http.HandlerFunc(handler))
@@ -180,7 +183,7 @@ func TestGitHubStatusSuccessMockAPI(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) { run(t, tc) })
+		t.Run(tc.name, func(t *testing.T) { test(t, tc) })
 	}
 }
 
@@ -218,7 +221,10 @@ func TestGitHubStatusFailureMockAPI(t *testing.T) {
 			// for better control.
 			w.Header().Set("Date", now.Format(time.RFC1123))
 			w.WriteHeader(response.status)
-			fmt.Fprintln(w, response.body)
+			_, err := fmt.Fprintln(w, response.body)
+			if err != nil {
+				t.Fatalf("writing response body: %s", err)
+			}
 			attempt++
 		}
 		ts := httptest.NewServer(http.HandlerFunc(handler))
@@ -244,8 +250,8 @@ func TestGitHubStatusFailureMockAPI(t *testing.T) {
 		if err == nil {
 			t.Fatalf("%s\nhave: %v\nwant: %v", "Add", "<no error>", wantErr)
 		}
-		if have, want := err.Error(), wantErr; have != want {
-			t.Errorf("%s\nhave: %v\nwant: %v", "Add", have, want)
+		if diff := diff(err.Error(), wantErr); diff != "" {
+			t.Fatalf("Add: error mismatch:\n%s", diff)
 		}
 		{
 			var ghError *github.StatusError
@@ -422,8 +428,8 @@ func TestGitHubStatusFailureIntegration(t *testing.T) {
 		if err == nil {
 			t.Fatalf("%s\nhave: %v\nwant: %v", "Add", "<no error>", tc.wantErr)
 		}
-		if have, want := err.Error(), tc.wantErr; have != want {
-			t.Errorf("%s\nhave: %v\nwant: %v", "Add", have, want)
+		if diff := diff(err.Error(), tc.wantErr); diff != "" {
+			t.Fatalf("Add: error mismatch:\n%s", diff)
 		}
 		{
 			var ghError *github.StatusError
@@ -442,7 +448,7 @@ func TestGitHubStatusFailureIntegration(t *testing.T) {
 			name:  "bad token: Unauthorized",
 			token: "bad-token",
 			wantErr: `failed to add state "success" for commit 751affd: 401 Unauthorized
-Body: {"message":"Bad credentials","documentation_url":"https://docs.github.com/rest","status":"401"}
+Body: {"documentation_url":"https://docs.github.com/rest","message":"Bad credentials","status":"401"}
 Hint: Either wrong credentials or PAT expired (check your email for expiration notice)
 Action: POST https://api.github.com/repos/pix4d/go-kit-test-read-write/statuses/751affd155db7a00d936ee6e9f483deee69c5922
 OAuth: X-Accepted-Oauth-Scopes: , X-Oauth-Scopes: `,
@@ -452,7 +458,7 @@ OAuth: X-Accepted-Oauth-Scopes: , X-Oauth-Scopes: `,
 			name: "non existing repo: Not Found",
 			repo: "non-existing-really",
 			wantErr: `failed to add state "success" for commit 751affd: 404 Not Found
-Body: {"message":"Not Found","documentation_url":"https://docs.github.com/rest/commits/statuses#create-a-commit-status","status":"404"}
+Body: {"documentation_url":"https://docs.github.com/rest/commits/statuses#create-a-commit-status","message":"Not Found","status":"404"}
 Hint: one of the following happened:
     1. The repo https://github.com/pix4d/non-existing-really doesn't exist
     2. The user who issued the token doesn't have write access to the repo
@@ -465,7 +471,7 @@ OAuth: X-Accepted-Oauth-Scopes: repo, X-Oauth-Scopes: repo:status`,
 			name: "non existing SHA: Unprocessable Entity",
 			sha:  "e576e3aa7aaaa048b396e2f34fa24c9cf4d1e822",
 			wantErr: `failed to add state "success" for commit e576e3a: 422 Unprocessable Entity
-Body: {"message":"No commit found for SHA: e576e3aa7aaaa048b396e2f34fa24c9cf4d1e822","documentation_url":"https://docs.github.com/rest/commits/statuses#create-a-commit-status","status":"422"}
+Body: {"documentation_url":"https://docs.github.com/rest/commits/statuses#create-a-commit-status","message":"No commit found for SHA: e576e3aa7aaaa048b396e2f34fa24c9cf4d1e822","status":"422"}
 Hint: none
 Action: POST https://api.github.com/repos/pix4d/go-kit-test-read-write/statuses/e576e3aa7aaaa048b396e2f34fa24c9cf4d1e822
 OAuth: X-Accepted-Oauth-Scopes: , X-Oauth-Scopes: repo:status`,

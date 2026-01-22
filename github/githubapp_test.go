@@ -23,18 +23,27 @@ func TestGenerateInstallationToken(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			w.WriteHeader(http.StatusMethodNotAllowed)
-			fmt.Fprintln(w, "wrong HTTP method")
+			_, err := fmt.Fprintln(w, "wrong HTTP method")
+			if err != nil {
+				t.Fatalf("writing response: %s", err)
+			}
 			return
 		}
 
 		claims := decodeJWT(t, r, privateKey)
 		if claims.Issuer != clientID {
 			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprintln(w, "unauthorized: wrong JWT token")
+			_, err := fmt.Fprintln(w, "unauthorized: wrong JWT token")
+			if err != nil {
+				t.Fatalf("writing response: %s", err)
+			}
 			return
 		}
 		w.WriteHeader(http.StatusCreated)
-		fmt.Fprintln(w, `{"token": "dummy_installation_token"}`)
+		_, err := fmt.Fprintln(w, `{"token": "dummy_installation_token"}`)
+		if err != nil {
+			t.Fatalf("writing response: %s", err)
+		}
 	}
 
 	ts := httptest.NewServer(http.HandlerFunc(handler))

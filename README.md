@@ -23,4 +23,4 @@ Version v0.x. No backward compatibility guarantees before reaching v1.
 
 ## License
 
-This code is licensed according to the MIT license (see file LICENSE).
+This code is licensed according to the MIT license (see file [LICENSE](./LICENSE)).

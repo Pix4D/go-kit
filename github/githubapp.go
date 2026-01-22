@@ -76,7 +76,7 @@ func GenerateInstallationToken(ctx context.Context, client *http.Client, server 
 	if err != nil {
 		return "", fmt.Errorf("http client Do: %s", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	body, errBody := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusCreated {
