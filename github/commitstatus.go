@@ -17,10 +17,11 @@ import (
 	"github.com/Pix4D/go-kit/retry"
 )
 
-// StatusError is one of the possible errors returned by the github package.
+// StatusError is one of the possible errors returned when interacting with the
+// "Commit Statuses" API https://docs.github.com/en/rest/commits/statuses
 type StatusError struct {
 	What       string
-	StatusCode int
+	StatusCode int // The HTTP status code.
 	Details    string
 }
 
