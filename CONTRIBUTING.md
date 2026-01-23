@@ -97,6 +97,8 @@ $ gopass insert gokit/test_oauth_token
 
 ### GITHUB_APP_PRIVATE_KEY
 
+PCI team specific: the secret is available as `pci-go-kit-github-app-private-key` in the default secrets manager. Download it and insert it in gopass.
+
 1. Create and register a GitHub App for your account / organization
 2. Copy the private key of the App
 3. Store the key using gopass:
