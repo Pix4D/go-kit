@@ -4,6 +4,9 @@
 
 ### Added
 ### Changed
+
+- go.mod: upgrade to Go 1.26.2
+
 ### Deprecated
 ### Removed
 ### Fixed
