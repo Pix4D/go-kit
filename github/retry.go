@@ -16,8 +16,7 @@ func Classifier(err error) retry.Action {
 		return retry.Success
 	}
 
-	var ghErr GitHubError
-	if errors.As(err, &ghErr) {
+	if ghErr, ok := errors.AsType[GitHubError](err); ok {
 		if TransientError(ghErr.StatusCode) {
 			return retry.SoftFail
 		}
@@ -36,8 +35,7 @@ func Backoff(first bool, previous, limit time.Duration, err error) time.Duration
 	// This allows to immediately terminate the retry loop if it would take too
 	// long, instead of keeping retrying and discovering at the end that we are
 	// still rate limited.
-	var ghErr GitHubError
-	if errors.As(err, &ghErr) {
+	if ghErr, ok := errors.AsType[GitHubError](err); ok {
 		if RateLimited(ghErr) {
 			// Calculate the delay based solely on the server clock. This is
 			// unaffected by the inevitable clock drift between server and client.
