@@ -20,25 +20,22 @@ func ExampleRetry() {
 		UpTo:         5 * time.Second,
 		FirstDelay:   1 * time.Second,
 		BackoffLimit: 1 * time.Second,
-		Log: slog.New(slog.NewTextHandler(os.Stdout,
-			&slog.HandlerOptions{ReplaceAttr: removeTime})),
+		Log:          makeExampleLog(),
 	}
 
-	workFn := func() error {
-		// Do work...
-		// If something fails, as usual, return error.
-
-		// Everything went well.
-		return nil
-	}
-	classifierFn := func(err error) retry.Action {
+	workFn := func() (retry.Action, error) {
+		err := func() error {
+			// Do work. If something fails, as usual, return error.
+			// ...
+			return nil
+		}()
 		if err != nil {
-			return retry.SoftFail
+			return retry.SoftFail, err
 		}
-		return retry.Success
+		return retry.Success, err
 	}
 
-	err := rtr.Do(retry.ConstantBackoff, classifierFn, workFn)
+	err := rtr.Do(retry.ConstantBackoff, workFn)
 	if err != nil {
 		// Handle error...
 		fmt.Println("error:", err)
@@ -48,7 +45,7 @@ func ExampleRetry() {
 	// level=INFO msg=success system=retry attempt=1 totalDelay=0s
 }
 
-// Used in [ExampleRetry_CustomClassifier].
+// Used in [ExampleRetry_customError].
 var ErrBananaUnavailable = errors.New("banana service unavailable")
 
 // Embedded in [BananaResponseError].
@@ -57,7 +54,7 @@ type BananaResponse struct {
 	// In practice, more fields here...
 }
 
-// Used in [ExampleRetry_CustomClassifier].
+// Used in [ExampleRetry_customError].
 type BananaResponseError struct {
 	Response *BananaResponse
 	// In practice, more fields here...
@@ -67,49 +64,46 @@ func (eb BananaResponseError) Error() string {
 	return "look at my fields, there is more information there"
 }
 
-func Example_retryCustomClassifier() {
+func ExampleRetry_customError() {
 	rtr := retry.Retry{
 		UpTo:         30 * time.Second,
 		FirstDelay:   2 * time.Second,
 		BackoffLimit: 1 * time.Minute,
-		Log: slog.New(slog.NewTextHandler(os.Stdout,
-			&slog.HandlerOptions{ReplaceAttr: removeTime})),
-		SleepFn: func(d time.Duration) {}, // Only for the test!
+		Log:          makeExampleLog(),
+		SleepFn:      func(d time.Duration) {}, // Only for the test!
 	}
 
 	attempt := 0
-	workFn := func() error {
-		attempt++
-		if attempt == 3 {
-			// Error wrapping is optional; we do it to show that it works also.
-			return fmt.Errorf("workFn: %w",
-				BananaResponseError{Response: &BananaResponse{Amount: 42}})
-		}
-		if attempt < 5 {
-			return ErrBananaUnavailable
-		}
-		// On 5th attempt we finally succeed.
-		return nil
-	}
-
-	classifierFn := func(err error) retry.Action {
-		if bananaResponseErr, ok := errors.AsType[BananaResponseError](err); ok {
-			response := bananaResponseErr.Response
-			if response.Amount == 42 {
-				return retry.SoftFail
+	workFn := func() (retry.Action, error) {
+		err := func() error {
+			attempt++
+			if attempt == 3 {
+				// Error wrapping is optional; we do it to show that it works also.
+				return fmt.Errorf("workFn: %w",
+					BananaResponseError{Response: &BananaResponse{Amount: 42}})
 			}
-			return retry.HardFail
-		}
-		if errors.Is(err, ErrBananaUnavailable) {
-			return retry.SoftFail
-		}
+			if attempt < 5 {
+				return ErrBananaUnavailable
+			}
+			// On 5th attempt we finally succeed.
+			return nil
+		}()
 		if err != nil {
-			return retry.HardFail
+			if brErr, ok := errors.AsType[BananaResponseError](err); ok {
+				if brErr.Response.Amount == 42 {
+					return retry.SoftFail, err
+				}
+				return retry.HardFail, err
+			}
+			if errors.Is(err, ErrBananaUnavailable) {
+				return retry.SoftFail, err
+			}
+			return retry.HardFail, err
 		}
-		return retry.Success
+		return retry.Success, err
 	}
 
-	err := rtr.Do(retry.ExponentialBackoff, classifierFn, workFn)
+	err := rtr.Do(retry.ExponentialBackoff, workFn)
 	if err != nil {
 		// Handle error...
 		fmt.Println("error:", err)
@@ -121,6 +115,11 @@ func Example_retryCustomClassifier() {
 	// level=INFO msg=waiting system=retry attempt=3 delay=8s totalDelay=14s
 	// level=INFO msg=waiting system=retry attempt=4 delay=16s totalDelay=30s
 	// level=INFO msg=success system=retry attempt=5 totalDelay=30s
+}
+
+func makeExampleLog() *slog.Logger {
+	return slog.New(slog.NewTextHandler(os.Stdout,
+		&slog.HandlerOptions{ReplaceAttr: removeTime}))
 }
 
 // removeTime removes time-dependent attributes from log/slog records, making

@@ -10,25 +10,6 @@ import (
 	"github.com/Pix4D/go-kit/retry"
 )
 
-// Classifier implements [retry.ClassifierFunc] for GitHub.
-func Classifier(err error) retry.Action {
-	if err == nil {
-		return retry.Success
-	}
-
-	if ghErr, ok := errors.AsType[GitHubError](err); ok {
-		if TransientError(ghErr.StatusCode) {
-			return retry.SoftFail
-		}
-		if RateLimited(ghErr) {
-			return retry.SoftFail
-		}
-		return retry.HardFail
-	}
-
-	return retry.HardFail
-}
-
 // Backoff implements [retry.BackoffFunc] for GitHub.
 func Backoff(first bool, previous, limit time.Duration, err error) time.Duration {
 	// Optimization: Are we rate limited?

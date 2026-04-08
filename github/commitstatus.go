@@ -130,11 +130,11 @@ func (cs CommitStatus) Add(ctx context.Context, sha, state, targetURL, descripti
 	req.Header.Set("Content-Type", "application/json")
 
 	// The retryable unit of work.
-	workFn := func() error {
+	workFn := func() (retry.Action, error) {
 		start := time.Now()
 		resp, err := cs.target.Client.Do(req)
 		if err != nil {
-			return fmt.Errorf("http client Do: %w", err)
+			return retry.HardFail, fmt.Errorf("http client Do: %w", err)
 		}
 		defer resp.Body.Close() //nolint:errcheck
 
@@ -155,7 +155,7 @@ func (cs CommitStatus) Add(ctx context.Context, sha, state, targetURL, descripti
 		)
 
 		if resp.StatusCode == http.StatusCreated {
-			return nil
+			return retry.Success, nil
 		}
 
 		body, _ := io.ReadAll(resp.Body)
@@ -163,17 +163,24 @@ func (cs CommitStatus) Add(ctx context.Context, sha, state, targetURL, descripti
 		if strings.Contains(strings.ToLower(contentType), "application/json") {
 			var foo map[string]any
 			if err := json.Unmarshal(body, &foo); err != nil {
-				return fmt.Errorf("normalizing JSON: unmarshal: %s", err)
+				return retry.HardFail, fmt.Errorf("normalizing JSON: unmarshal: %s", err)
 			}
 			buffer, err = json.Marshal(foo)
 			if err != nil {
-				return fmt.Errorf("normalizing JSON: marshal: %s", err)
+				return retry.HardFail, fmt.Errorf("normalizing JSON: marshal: %s", err)
 			}
 		}
-		return NewGitHubError(resp, errors.New(strings.TrimSpace(string(buffer))))
+		ghErr := NewGitHubError(resp, errors.New(strings.TrimSpace(string(buffer))))
+		if TransientError(resp.StatusCode) {
+			return retry.SoftFail, ghErr
+		}
+		if RateLimited(ghErr) {
+			return retry.SoftFail, ghErr
+		}
+		return retry.HardFail, ghErr
 	}
 
-	if err := cs.target.Retry.Do(Backoff, Classifier, workFn); err != nil {
+	if err := cs.target.Retry.Do(Backoff, workFn); err != nil {
 		return cs.explainError(err, state, sha, url)
 	}
 
