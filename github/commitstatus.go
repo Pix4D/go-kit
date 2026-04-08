@@ -158,7 +158,7 @@ func (cs CommitStatus) Add(ctx context.Context, sha, state, targetURL, descripti
 		}
 
 		body, _ := io.ReadAll(resp.Body)
-		var buffer = body
+		buffer := body
 		if strings.Contains(strings.ToLower(contentType), "application/json") {
 			var foo map[string]any
 			if err := json.Unmarshal(body, &foo); err != nil {
@@ -189,8 +189,7 @@ func (cs CommitStatus) explainError(err error, state, sha, url string) error {
 		state,
 		sha[0:min(len(sha), 7)],
 	)
-	var ghErr GitHubError
-	if errors.As(err, &ghErr) {
+	if ghErr, ok := errors.AsType[GitHubError](err); ok {
 		hint := "none"
 		switch ghErr.StatusCode {
 		case http.StatusNotFound:

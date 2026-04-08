@@ -78,8 +78,7 @@ func ParseGitPseudoURL(rawURL string) (GitURL, error) {
 func safeUrlParse(rawURL string) (*url.URL, error) {
 	parsedUrl, err := url.Parse(rawURL)
 	if err != nil {
-		var uerr *url.Error
-		if errors.As(err, &uerr) {
+		if uerr, ok := errors.AsType[*url.Error](err); ok {
 			// url.Parse returns a wrapped error that contains also the URL.
 			// Instead, we return only the error.
 			return nil, uerr.Err

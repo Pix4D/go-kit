@@ -93,8 +93,7 @@ func Example_retryCustomClassifier() {
 	}
 
 	classifierFn := func(err error) retry.Action {
-		var bananaResponseErr BananaResponseError
-		if errors.As(err, &bananaResponseErr) {
+		if bananaResponseErr, ok := errors.AsType[BananaResponseError](err); ok {
 			response := bananaResponseErr.Response
 			if response.Amount == 42 {
 				return retry.SoftFail
