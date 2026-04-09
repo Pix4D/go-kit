@@ -58,6 +58,21 @@ type CommitStatus struct {
 	log *slog.Logger
 }
 
+// DefaultRetry returns a [retry.Retry] with the recommended values to be passed to
+// [NewCommitStatus] for production. If you have special requirements, or for testing,
+// you can override completely or partially.
+func DefaultRetry(log *slog.Logger) retry.Retry {
+	upTo := 15 * time.Minute
+	return retry.Retry{
+		UpTo:       upTo,
+		FirstDelay: 2 * time.Second,
+		// With an exponential backoff and a FirstDelay = 2s, the sequence will be:
+		// 2s 4s 8s 16s 32s 60s ... 60s, until reaching a cumulative delay of UpTo.
+		BackoffLimit: 1 * time.Minute,
+		Log:          log,
+	}
+}
+
 // NewCommitStatus returns a CommitStatus object associated to a specific GitHub owner
 // and repo.
 // Parameter token is the personal OAuth token of a user that has write access to the
