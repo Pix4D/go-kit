@@ -48,9 +48,7 @@ tasks:
     desc: Run the unit tests.
     cmds:
       # One day I will understand how to use -coverpkg=./... :-(
-      # TODO: can we remove -short ?
-      - gotestsum -- -short -coverprofile=coverage.out -count=1 ./...
-    env: *test-env
+      - gotestsum -- -coverprofile=coverage.out -count=1 -skip=Integration ./...
 
   test:all:
     desc: Run all the tests (unit + integration). Use this target to get total coverage.

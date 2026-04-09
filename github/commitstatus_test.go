@@ -345,10 +345,6 @@ OAuth: X-Accepted-Oauth-Scopes: , X-Oauth-Scopes: `,
 }
 
 func TestGitHubStatusSuccessIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test (reason: -short)")
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -377,10 +373,6 @@ func TestGitHubStatusSuccessIntegration(t *testing.T) {
 }
 
 func TestGitHubStatusFailureIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test (reason: -short)")
-	}
-
 	type testCase struct {
 		name       string
 		token      string // default: cfg.Token
