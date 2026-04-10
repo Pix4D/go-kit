@@ -3,6 +3,9 @@
 ## [Unreleased]
 
 ### Added
+
+- Package `googlechat`, imported from cogito.
+
 ### Changed
 
 - go.mod: upgrade to Go 1.26.2
