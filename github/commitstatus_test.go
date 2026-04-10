@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Pix4D/go-kit/github"
+	"github.com/Pix4D/go-kit/internal/testutils"
 	"github.com/Pix4D/go-kit/retry"
 )
 
@@ -79,7 +80,7 @@ func TestGitHubStatusSuccessMockAPI(t *testing.T) {
 		}
 		ts := httptest.NewServer(http.HandlerFunc(handler))
 		defer ts.Close()
-		log := makeTestLog()
+		log := testutils.MakeTestLog()
 		sleepSpy := SleepSpy{}
 		target := &github.Target{
 			Client: ts.Client(),
@@ -230,7 +231,7 @@ func TestGitHubStatusFailureMockAPI(t *testing.T) {
 		ts := httptest.NewServer(http.HandlerFunc(handler))
 		defer ts.Close()
 		wantErr := fmt.Sprintf(tc.wantErr, ts.URL)
-		log := makeTestLog()
+		log := testutils.MakeTestLog()
 		sleepSpy := SleepSpy{}
 		target := &github.Target{
 			Client: ts.Client(),
@@ -356,7 +357,7 @@ func TestGitHubStatusSuccessIntegration(t *testing.T) {
 	targetURL := "https://go-kit.example/builds/job/42"
 	desc := time.Now().Format("15:04:05")
 	state := "success"
-	log := makeTestLog()
+	log := testutils.MakeTestLog()
 	target := &github.Target{
 		Client: &http.Client{},
 		Server: github.ApiRoot(github.GhDefaultHostname),
@@ -395,7 +396,7 @@ func TestGitHubStatusFailureIntegration(t *testing.T) {
 
 	cfg := gitHubSecretsOrFail(t)
 	state := "success"
-	log := makeTestLog()
+	log := testutils.MakeTestLog()
 
 	run := func(t *testing.T, tc testCase) {
 		// zero values are defaults
