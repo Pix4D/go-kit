@@ -8,8 +8,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io"
-	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -121,30 +119,6 @@ func decodeJWT(t *testing.T, r *http.Request, key *rsa.PrivateKey) *jwt.Register
 	}
 
 	return tok.Claims.(*jwt.RegisteredClaims)
-}
-
-// makeTestLog returns a *slog.Logger adapted for tests: it never reports the
-// timestamp and by default it discards all the output. If on the other hand
-// the tests are invoked in verbose mode (go test -v), then the logger will
-// log normally.
-func makeTestLog() *slog.Logger {
-	out := io.Discard
-	if testing.Verbose() {
-		out = os.Stdout
-	}
-	return slog.New(slog.NewTextHandler(
-		out,
-		&slog.HandlerOptions{
-			ReplaceAttr: removeTime,
-		}))
-}
-
-// removeTime removes the "time" attribute from the output of a slog.Logger.
-func removeTime(groups []string, a slog.Attr) slog.Attr {
-	if a.Key == slog.TimeKey {
-		return slog.Attr{}
-	}
-	return a
 }
 
 // diff compares have and want line by line, and return difference if exists.

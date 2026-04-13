@@ -41,19 +41,21 @@ tasks:
       GOKIT_TEST_GH_APP_INSTALLATION_ID: '{{default "64650729" .GOKIT_TEST_GH_APP_INSTALLATION_ID}}'
       GOKIT_TEST_GH_APP_PRIVATE_KEY:
         sh: 'echo "{{default "$(gopass show gokit/test_gh_app_private_key)" .GOKIT_TEST_GH_APP_PRIVATE_KEY}}"'
+      GOKIT_TEST_GCHAT_WEBHOOK:
+        sh: 'echo "{{default "$(gopass show gokit/test_gchat_webhook)" .GOKIT_TEST_GCHAT_WEBHOOK}}"'
 
   test:unit:
     desc: Run the unit tests.
     cmds:
       # One day I will understand how to use -coverpkg=./... :-(
       # TODO: can we remove -short ?
-      - gotestsum -- -short -coverprofile=coverage.out ./...
+      - gotestsum -- -short -coverprofile=coverage.out -count=1 ./...
     env: *test-env
 
   test:all:
     desc: Run all the tests (unit + integration). Use this target to get total coverage.
     cmds:
-      - gotestsum -- -coverprofile=coverage.out ./...
+      - gotestsum -- -coverprofile=coverage.out -count=1 ./...
     env: *test-env
 
   browser:
