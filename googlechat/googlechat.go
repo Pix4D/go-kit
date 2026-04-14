@@ -31,9 +31,11 @@ type BasicMessage struct {
 // MessageReply is the reply to [TextMessage].
 // Compared to the full API reply, some uninteresting fields are removed.
 type MessageReply struct {
-	Name       string        `json:"name"` // Absolute message ID.
-	Sender     MessageSender `json:"sender"`
-	Text       string        `json:"text"` // The message text, as sent.
+	// Absolute message ID. See also [MessageThread.Name].
+	// Format: "spaces/<space-ID>/messages/<thread-ID>.<message-ID>",
+	Name       string        `json:"name"`
+	Sender     MessageSender `json:"sender"` // This object is returned empty.
+	Text       string        `json:"text"`   // The message text, as sent.
 	Thread     MessageThread `json:"thread"`
 	Space      MessageSpace  `json:"space"`
 	CreateTime time.Time     `json:"createTime"`
@@ -42,24 +44,28 @@ type MessageReply struct {
 // MessageSender is part of [MessageReply].
 // Compared to the full API reply, some uninteresting fields are removed.
 type MessageSender struct {
-	Name        string `json:"name"`        // Absolute user ID.
-	DisplayName string `json:"displayName"` // Name of the webhook in the UI.
-	Type        string `json:"type"`        // "BOT", ...
+	Name        string `json:"name"`        // Returned empty. Absolute user ID.
+	DisplayName string `json:"displayName"` // Returned empty. Name of the webhook in the UI.
+	Type        string `json:"type"`        // Returned empty. "BOT", ...
 }
 
 // MessageThread is part of [MessageReply].
 // Compared to the full API reply, some uninteresting fields are removed.
 type MessageThread struct {
-	Name string `json:"name"` // Absolute thread ID.
+	// Absolute thread ID. See also [MessageReply.Name].
+	// Format: "spaces/<space-ID>/threads/<thread-ID>"
+	Name string `json:"name"`
 }
 
 // MessageSpace is part of [MessageReply].
 // Compared to the full API reply, some uninteresting fields are removed.
 type MessageSpace struct {
-	Name        string `json:"name"`        // Absolute space ID.
-	Type        string `json:"type"`        // "ROOM", ...
+	// Absolute space ID.
+	// Format: "spaces/<space-ID>"
+	Name        string `json:"name"`
+	Type        string `json:"type"`        // Returned empty. Should be: "ROOM", ...
 	Threaded    bool   `json:"threaded"`    // Has the space been created as "threaded"?
-	DisplayName string `json:"displayName"` // Name of the space in the UI.
+	DisplayName string `json:"displayName"` // Returned empty. Name of the space in the UI.
 }
 
 // DefaultRetry returns a [retry.Retry] with the recommended values to be passed to

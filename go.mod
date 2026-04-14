@@ -9,5 +9,5 @@ require (
 
 require (
 	github.com/alecthomas/repr v0.5.2 // indirect
-	github.com/marco-m/rosina v0.2.0
+	github.com/marco-m/rosina v0.3.0
 )

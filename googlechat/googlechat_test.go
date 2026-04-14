@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/marco-m/rosina/assert"
+	"github.com/marco-m/rosina/check"
 
 	"github.com/Pix4D/go-kit/googlechat"
 	"github.com/Pix4D/go-kit/internal/testutils"
@@ -36,6 +37,13 @@ func TestTextMessageIntegration(t *testing.T) {
 
 	assert.NoError(t, err, "TextMessage")
 	assert.Contains(t, reply.Text, text, "TextMessage reply")
+
+	// Assert that the fields observed as filled are still returned filled.
+	// When these tests fail, it might mean that the API has changed.
+	// SECURITY Be careful not to reveal too much! We do not want to leak the webhook!
+	check.True(t, reply.Name != "", "reply.Name not empty")
+	check.True(t, reply.Thread.Name != "", "reply.Thread.Name not empty")
+	check.True(t, reply.Space.Name != "", "reply.Space.Name not empty")
 }
 
 func TestTextMessageRetryDueToStatusCodeAndPass(t *testing.T) {
