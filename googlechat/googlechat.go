@@ -1,4 +1,5 @@
-// Package googlechat implements a minimal part of the Google Chat API.
+// Package googlechat implements a minimal part of the Google Chat API; it integrates
+// with the [github.com/Pix4D/go-kit/retry] package.
 //
 // See also:
 //   - how the package is used by cogito https://github.com/Pix4D/cogito
