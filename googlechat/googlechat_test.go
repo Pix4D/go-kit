@@ -157,3 +157,17 @@ func TestRedactString(t *testing.T) {
 
 	assert.Equal(t, have, want, "RedactURLString")
 }
+
+// Test is a bit silly because it has to duplicate the logic of the SUT.
+func TestMessageReplySpaceURL(t *testing.T) {
+	test := func(desc, name, want string) {
+		t.Helper()
+		var reply googlechat.MessageReply
+		reply.Space.Name = name
+		check.Equal(t, reply.SpaceURL(), want, desc)
+	}
+
+	test("correct", "spaces/banana", "https://chat.google.com/u/0/app/chat/banana")
+	test("empty", "", "space-not-parseable")
+	test("buggy", "foobar", "space-not-parseable")
+}

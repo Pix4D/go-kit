@@ -68,6 +68,18 @@ type MessageSpace struct {
 	DisplayName string `json:"displayName"` // Returned empty. Name of the space in the UI.
 }
 
+// SpaceURL applies an heuristic to generate an URL to the GoogleChat space to which
+// the webhook passed to [TextMessage] belongs.
+func (reply MessageReply) SpaceURL() string {
+	const baseURL = "https://chat.google.com/u/0/app/chat"
+	// Format: "spaces/<space-ID>"
+	_, spaceID, found := strings.Cut(reply.Space.Name, "/")
+	if !found {
+		return "space-not-parseable"
+	}
+	return fmt.Sprintf("%s/%s", baseURL, spaceID)
+}
+
 // DefaultRetry returns a [retry.Retry] with the recommended values to be passed to
 // [TextMessage] for production. If you have special requirements, or for testing,
 // you can override completely or partially.
