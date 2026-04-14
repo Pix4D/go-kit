@@ -1,4 +1,5 @@
-// Package googlechat implements a minimal part of the Google Chat API.
+// Package googlechat implements a minimal part of the Google Chat API; it integrates
+// with the [github.com/Pix4D/go-kit/retry] package.
 //
 // See also:
 //   - how the package is used by cogito https://github.com/Pix4D/cogito
@@ -159,14 +160,14 @@ func retrySend(rtr retry.Retry, timeout time.Duration, webHook, threadKey string
 ) (*http.Response, error) {
 	var resp *http.Response
 	client := &http.Client{}
-	workFn := func() error {
+	workFn := func() (retry.Action, error) {
 		var err error
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, webHook,
 			bytes.NewBuffer(body))
 		if err != nil {
-			return fmt.Errorf("TextMessage: new request: %w", RedactErrorURL(err))
+			return retry.HardFail, fmt.Errorf("TextMessage: new request: %w", RedactErrorURL(err))
 		}
 		req.Header.Set("Content-Type", "application/json; charset=UTF-8")
 		// Encode the thread Key as a URL parameter.
@@ -176,25 +177,24 @@ func retrySend(rtr retry.Retry, timeout time.Duration, webHook, threadKey string
 			req.URL.RawQuery = values.Encode()
 		}
 		resp, err = client.Do(req)
-		return err
-	}
-	classifierFn := func(err error) retry.Action {
-		if errors.Is(err, context.DeadlineExceeded) {
-			return retry.SoftFail
-		}
 		if err != nil {
-			return retry.HardFail
+			if errors.Is(err, context.DeadlineExceeded) {
+				return retry.SoftFail, err
+			}
+			return retry.HardFail, err
 		}
 		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
-			return retry.Success
+			return retry.Success, nil
 		}
 		if slices.Contains(retryables, resp.StatusCode) {
-			return retry.SoftFail
+			return retry.SoftFail, err
 		}
-		return retry.HardFail
+		// FIXME We never read and report the payload as error to the user!!!
+		return retry.HardFail, fmt.Errorf("unretriable status code: %d %s",
+			resp.StatusCode, http.StatusText(resp.StatusCode))
 	}
 
-	err := rtr.Do(retry.ExponentialBackoff, classifierFn, workFn)
+	err := rtr.Do(retry.ExponentialBackoff, workFn)
 	return resp, err
 }
 

@@ -22,9 +22,15 @@ func TestRetrySuccessOnFirstAttempt(t *testing.T) {
 		Log:          makeLog(),
 		SleepFn:      func(d time.Duration) { sleeps = append(sleeps, d) },
 	}
-	workFn := func() error { return nil }
+	workFn := func() (retry.Action, error) {
+		err := func() error { return nil }()
+		if err != nil {
+			return retry.SoftFail, err
+		}
+		return retry.Success, err
+	}
 
-	err := rtr.Do(retry.ConstantBackoff, retryOnError, workFn)
+	err := rtr.Do(retry.ConstantBackoff, workFn)
 	if err != nil {
 		t.Errorf("%s:\nhave: %v\nwant: %v", "retry.Do", err, "<no error>")
 	}
@@ -43,15 +49,21 @@ func TestRetrySuccessOnThirdAttempt(t *testing.T) {
 		SleepFn:      func(d time.Duration) { sleeps = append(sleeps, d) },
 	}
 	attempt := 0
-	workFn := func() error {
-		attempt++
-		if attempt == 3 {
-			return nil
+	workFn := func() (retry.Action, error) {
+		err := func() error {
+			attempt++
+			if attempt == 3 {
+				return nil
+			}
+			return fmt.Errorf("attempt %d", attempt)
+		}()
+		if err != nil {
+			return retry.SoftFail, err
 		}
-		return fmt.Errorf("attempt %d", attempt)
+		return retry.Success, err
 	}
 
-	err := rtr.Do(retry.ConstantBackoff, retryOnError, workFn)
+	err := rtr.Do(retry.ConstantBackoff, workFn)
 	if err != nil {
 		t.Errorf("%s:\nhave: %v\nwant: %v", "retry.Do", err, "<no error>")
 	}
@@ -71,9 +83,15 @@ func TestRetryFailureRunOutOfTime(t *testing.T) {
 		SleepFn:      func(d time.Duration) { sleeps = append(sleeps, d) },
 	}
 	ErrAlwaysFail := errors.New("I always fail")
-	workFn := func() error { return ErrAlwaysFail }
+	workFn := func() (retry.Action, error) {
+		err := ErrAlwaysFail
+		if err != nil {
+			return retry.SoftFail, err
+		}
+		return retry.Success, err
+	}
 
-	err := rtr.Do(retry.ConstantBackoff, retryOnError, workFn)
+	err := rtr.Do(retry.ConstantBackoff, workFn)
 
 	if have, want := err, ErrAlwaysFail; !errors.Is(have, want) {
 		t.Errorf("%s:\nhave: %v\nwant: %v", "retry.Do", have, want)
@@ -96,9 +114,15 @@ func TestRetryExponentialBackOff(t *testing.T) {
 		Log:          makeLog(),
 	}
 	ErrAlwaysFail := errors.New("I always fail")
-	workFn := func() error { return ErrAlwaysFail }
+	workFn := func() (retry.Action, error) {
+		err := ErrAlwaysFail
+		if err != nil {
+			return retry.SoftFail, err
+		}
+		return retry.Success, err
+	}
 
-	err := rtr.Do(retry.ExponentialBackoff, retryOnError, workFn)
+	err := rtr.Do(retry.ExponentialBackoff, workFn)
 
 	if have, want := err, ErrAlwaysFail; !errors.Is(have, want) {
 		t.Errorf("%s:\nhave: %v\nwant: %v", "retry.Do", have, want)
@@ -121,25 +145,16 @@ func TestRetryFailureHardFailOnSecondAttempt(t *testing.T) {
 		SleepFn:      func(d time.Duration) { sleeps = append(sleeps, d) },
 	}
 	ErrUnrecoverable := errors.New("I am unrecoverable")
-	classifierFn := func(err error) retry.Action {
-		if errors.Is(err, ErrUnrecoverable) {
-			return retry.HardFail
-		}
-		if err != nil {
-			return retry.SoftFail
-		}
-		return retry.Success
-	}
 	attempt := 0
-	workFn := func() error {
+	workFn := func() (retry.Action, error) {
 		attempt++
 		if attempt == 2 {
-			return ErrUnrecoverable
+			return retry.HardFail, ErrUnrecoverable
 		}
-		return fmt.Errorf("attempt %d", attempt)
+		return retry.SoftFail, fmt.Errorf("attempt %d", attempt)
 	}
 
-	err := rtr.Do(retry.ConstantBackoff, classifierFn, workFn)
+	err := rtr.Do(retry.ConstantBackoff, workFn)
 
 	if have, want := err, ErrUnrecoverable; !errors.Is(have, want) {
 		t.Errorf("%s:\nhave: %v\nwant: %v", "retry.Do", have, want)
@@ -148,13 +163,6 @@ func TestRetryFailureHardFailOnSecondAttempt(t *testing.T) {
 	if have, want := sleeps, wantSleeps; slices.Compare(have, want) != 0 {
 		t.Errorf("%s:\nhave: %v\nwant: %v", "sleeps", have, want)
 	}
-}
-
-func retryOnError(err error) retry.Action {
-	if err != nil {
-		return retry.SoftFail
-	}
-	return retry.Success
 }
 
 func makeLog() *slog.Logger {

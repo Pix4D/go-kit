@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// Action is returned by a ClassifierFunc to indicate to Retry how to proceed.
+// Action is returned by a WorkFunc to indicate to Retry how to proceed.
 type Action int
 
 const (
@@ -43,20 +43,21 @@ type Retry struct {
 // [github.com/Pix4D/go-kit/github.Backoff].
 type BackoffFunc func(first bool, previous, limit time.Duration, err error) time.Duration
 
-// ClassifierFunc decides whether to proceed or not; called by [Retry.Do].
-// Parameter err allows to inspect the error; for an example see
-// [github.com/Pix4D/go-kit/github.Classifier]
-type ClassifierFunc func(err error) Action
-
-// WorkFunc does the unit of work that might fail and need to be retried; called
-// by [Retry.Do].
-type WorkFunc func() error
+// WorkFunc does the unit of work that might fail and need to be retried; it also
+// decides wether to proceed or not via the returned [Action]. Called by [Retry.Do].
+// When the returned [Action] is [Success] or [HardFail], then the returned error,
+// if any, will also be returned by [Retry.Do].
+//
+// For an example, see
+//
+//   - [github.CommitStatus.Add]
+//   - retry_example_test.go
+type WorkFunc func() (Action, error)
 
 // Do is the loop of [Retry].
 // See the examples in file retry_example_test.go.
 func (rtr Retry) Do(
 	backoffFn BackoffFunc,
-	classifierFn ClassifierFunc,
 	workFn WorkFunc,
 ) error {
 	if rtr.FirstDelay <= 0 {
@@ -74,8 +75,8 @@ func (rtr Retry) Do(
 	totalDelay := 0 * time.Second
 
 	for attempt := 1; ; attempt++ {
-		err := workFn()
-		switch classifierFn(err) {
+		action, err := workFn()
+		switch action {
 		case Success:
 			rtr.Log.Info("success", "attempt", attempt, "totalDelay", totalDelay)
 			return err

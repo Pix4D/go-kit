@@ -17,9 +17,10 @@ Version v0.x. No backward compatibility guarantees before reaching v1.
 
 ## Contents
 
-- [sets](sets/)     -- minimal implementation of a generic set data structure.
-- [retry](retry/)   -- generic and customizable retry mechanism.
-- [github](github/) -- minimal implementation of some GitHub APIs; integrates with `retry`.
+- [sets](sets/)               -- minimal implementation of a generic set data structure.
+- [retry](retry/)             -- generic and customizable retry mechanism.
+- [github](github/)           -- minimal implementation of some GitHub APIs; integrates with `retry`.
+- [[googlechat](googlechat/)] -- minimal implementation of the Google Chat API; integrates with `retry`.
 
 ## License
 

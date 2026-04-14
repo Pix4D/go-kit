@@ -13,7 +13,6 @@ import (
 
 	"github.com/Pix4D/go-kit/github"
 	"github.com/Pix4D/go-kit/internal/testutils"
-	"github.com/Pix4D/go-kit/retry"
 )
 
 type mockedResponse struct {
@@ -26,21 +25,6 @@ type mockedResponse struct {
 const (
 	emptyRateRemaining = "0"    // From the GitHub API.
 	fullRateRemaining  = "5000" // From the GitHub API.
-)
-
-// Copied from ghcommitsink.go
-// Note that sometimes in tests we override these values for practical reasons.
-const (
-	// retryUpTo is the total maximum duration of the retries.
-	retryUpTo = 15 * time.Minute
-
-	// retryFirstDelay is duration of the first backoff.
-	retryFirstDelay = 2 * time.Second
-
-	// retryBackoffLimit is the upper bound duration of a backoff.
-	// That is, with an exponential backoff and a retryFirstDelay = 2s, the sequence will be:
-	// 2s 4s 8s 16s 32s 60s ... 60s, until reaching a cumulative delay of retryUpTo.
-	retryBackoffLimit = 1 * time.Minute
 )
 
 func TestGitHubStatusSuccessMockAPI(t *testing.T) {
@@ -61,6 +45,7 @@ func TestGitHubStatusSuccessMockAPI(t *testing.T) {
 	targetURL := "https://go-kit.example/builds/job/42"
 	now := time.Now()
 	desc := now.Format("15:04:05")
+	retryFirstDelay := github.DefaultRetry(nil).FirstDelay
 
 	test := func(t *testing.T, tc testCase) {
 		attempt := 0
@@ -82,16 +67,12 @@ func TestGitHubStatusSuccessMockAPI(t *testing.T) {
 		defer ts.Close()
 		log := testutils.MakeTestLog()
 		sleepSpy := SleepSpy{}
+		rtr := github.DefaultRetry(log)
+		rtr.SleepFn = sleepSpy.Sleep
 		target := &github.Target{
 			Client: ts.Client(),
 			Server: ts.URL,
-			Retry: retry.Retry{
-				FirstDelay:   retryFirstDelay,
-				BackoffLimit: retryBackoffLimit,
-				UpTo:         retryUpTo,
-				SleepFn:      sleepSpy.Sleep,
-				Log:          log,
-			},
+			Retry:  rtr,
 		}
 		ghStatus := github.NewCommitStatus(target, cfg.Token, cfg.Owner, cfg.Repo, context, log)
 
@@ -208,6 +189,7 @@ func TestGitHubStatusFailureMockAPI(t *testing.T) {
 	now := time.Now()
 	desc := now.Format("15:04:05")
 	upTo := 5 * time.Minute
+	retryFirstDelay := github.DefaultRetry(nil).FirstDelay
 
 	run := func(t *testing.T, tc testCase) {
 		attempt := 0
@@ -233,16 +215,13 @@ func TestGitHubStatusFailureMockAPI(t *testing.T) {
 		wantErr := fmt.Sprintf(tc.wantErr, ts.URL)
 		log := testutils.MakeTestLog()
 		sleepSpy := SleepSpy{}
+		rtr := github.DefaultRetry(log)
+		rtr.UpTo = upTo
+		rtr.SleepFn = sleepSpy.Sleep
 		target := &github.Target{
 			Client: ts.Client(),
 			Server: ts.URL,
-			Retry: retry.Retry{
-				FirstDelay:   retryFirstDelay,
-				BackoffLimit: retryBackoffLimit,
-				UpTo:         upTo,
-				SleepFn:      sleepSpy.Sleep,
-				Log:          log,
-			},
+			Retry:  rtr,
 		}
 		ghStatus := github.NewCommitStatus(target, cfg.Token, cfg.Owner, cfg.Repo, context, log)
 
@@ -345,10 +324,6 @@ OAuth: X-Accepted-Oauth-Scopes: , X-Oauth-Scopes: `,
 }
 
 func TestGitHubStatusSuccessIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test (reason: -short)")
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -361,12 +336,7 @@ func TestGitHubStatusSuccessIntegration(t *testing.T) {
 	target := &github.Target{
 		Client: &http.Client{},
 		Server: github.ApiRoot(github.GhDefaultHostname),
-		Retry: retry.Retry{
-			FirstDelay:   retryFirstDelay,
-			BackoffLimit: retryBackoffLimit,
-			UpTo:         retryUpTo,
-			Log:          log,
-		},
+		Retry:  github.DefaultRetry(log),
 	}
 	ghStatus := github.NewCommitStatus(target, cfg.Token, cfg.Owner, cfg.Repo, context, log)
 
@@ -377,10 +347,6 @@ func TestGitHubStatusSuccessIntegration(t *testing.T) {
 }
 
 func TestGitHubStatusFailureIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test (reason: -short)")
-	}
-
 	type testCase struct {
 		name       string
 		token      string // default: cfg.Token
@@ -416,12 +382,7 @@ func TestGitHubStatusFailureIntegration(t *testing.T) {
 		target := &github.Target{
 			Client: &http.Client{},
 			Server: github.ApiRoot(github.GhDefaultHostname),
-			Retry: retry.Retry{
-				FirstDelay:   retryFirstDelay,
-				BackoffLimit: retryBackoffLimit,
-				UpTo:         retryUpTo,
-				Log:          log,
-			},
+			Retry:  github.DefaultRetry(log),
 		}
 		ghStatus := github.NewCommitStatus(target, tc.token, tc.owner, tc.repo, "dummy-context", log)
 		err := ghStatus.Add(ctx, tc.sha, state, "dummy-url", "dummy-desc")

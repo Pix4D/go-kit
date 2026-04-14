@@ -17,10 +17,11 @@ import (
 	"github.com/Pix4D/go-kit/retry"
 )
 
-// StatusError is one of the possible errors returned by the github package.
+// StatusError is one of the possible errors returned when interacting with the
+// "Commit Statuses" API https://docs.github.com/en/rest/commits/statuses
 type StatusError struct {
 	What       string
-	StatusCode int
+	StatusCode int // The HTTP status code.
 	Details    string
 }
 
@@ -55,6 +56,21 @@ type CommitStatus struct {
 	context string
 
 	log *slog.Logger
+}
+
+// DefaultRetry returns a [retry.Retry] with the recommended values to be passed to
+// [NewCommitStatus] for production. If you have special requirements, or for testing,
+// you can override completely or partially.
+func DefaultRetry(log *slog.Logger) retry.Retry {
+	upTo := 15 * time.Minute
+	return retry.Retry{
+		UpTo:       upTo,
+		FirstDelay: 2 * time.Second,
+		// With an exponential backoff and a FirstDelay = 2s, the sequence will be:
+		// 2s 4s 8s 16s 32s 60s ... 60s, until reaching a cumulative delay of UpTo.
+		BackoffLimit: 1 * time.Minute,
+		Log:          log,
+	}
 }
 
 // NewCommitStatus returns a CommitStatus object associated to a specific GitHub owner
@@ -129,11 +145,11 @@ func (cs CommitStatus) Add(ctx context.Context, sha, state, targetURL, descripti
 	req.Header.Set("Content-Type", "application/json")
 
 	// The retryable unit of work.
-	workFn := func() error {
+	workFn := func() (retry.Action, error) {
 		start := time.Now()
 		resp, err := cs.target.Client.Do(req)
 		if err != nil {
-			return fmt.Errorf("http client Do: %w", err)
+			return retry.HardFail, fmt.Errorf("http client Do: %w", err)
 		}
 		defer resp.Body.Close() //nolint:errcheck
 
@@ -154,7 +170,7 @@ func (cs CommitStatus) Add(ctx context.Context, sha, state, targetURL, descripti
 		)
 
 		if resp.StatusCode == http.StatusCreated {
-			return nil
+			return retry.Success, nil
 		}
 
 		body, _ := io.ReadAll(resp.Body)
@@ -162,17 +178,24 @@ func (cs CommitStatus) Add(ctx context.Context, sha, state, targetURL, descripti
 		if strings.Contains(strings.ToLower(contentType), "application/json") {
 			var foo map[string]any
 			if err := json.Unmarshal(body, &foo); err != nil {
-				return fmt.Errorf("normalizing JSON: unmarshal: %s", err)
+				return retry.HardFail, fmt.Errorf("normalizing JSON: unmarshal: %s", err)
 			}
 			buffer, err = json.Marshal(foo)
 			if err != nil {
-				return fmt.Errorf("normalizing JSON: marshal: %s", err)
+				return retry.HardFail, fmt.Errorf("normalizing JSON: marshal: %s", err)
 			}
 		}
-		return NewGitHubError(resp, errors.New(strings.TrimSpace(string(buffer))))
+		ghErr := NewGitHubError(resp, errors.New(strings.TrimSpace(string(buffer))))
+		if TransientError(resp.StatusCode) {
+			return retry.SoftFail, ghErr
+		}
+		if RateLimited(ghErr) {
+			return retry.SoftFail, ghErr
+		}
+		return retry.HardFail, ghErr
 	}
 
-	if err := cs.target.Retry.Do(Backoff, Classifier, workFn); err != nil {
+	if err := cs.target.Retry.Do(Backoff, workFn); err != nil {
 		return cs.explainError(err, state, sha, url)
 	}
 

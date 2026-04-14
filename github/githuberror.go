@@ -8,15 +8,17 @@ import (
 )
 
 type GitHubError struct {
-	StatusCode         int
-	OauthInfo          string
+	StatusCode int
+	OauthInfo  string
+	// Date comes from the HTTP "Date" header in the response that caused this error.
+	// When the header is missing, then it is set to the current time.
 	Date               time.Time
 	RateLimitRemaining int
 	RateLimitReset     time.Time
 	innerErr           error
 }
 
-func NewGitHubError(httpResp *http.Response, innerErr error) error {
+func NewGitHubError(httpResp *http.Response, innerErr error) GitHubError {
 	ghErr := GitHubError{
 		innerErr:   innerErr,
 		StatusCode: httpResp.StatusCode,
@@ -66,7 +68,8 @@ func NewGitHubError(httpResp *http.Response, innerErr error) error {
 	date, err := time.Parse(time.RFC1123, httpResp.Header.Get("Date"))
 	// FIXME this is not robust. Maybe log instead and put a best effort date instead?
 	if err != nil {
-		return fmt.Errorf("failed to parse the date header: %s", err)
+		ghErr.innerErr = fmt.Errorf("failed to parse the Date header: %s, %w", err, innerErr)
+		return ghErr
 	}
 	ghErr.Date = date
 
