@@ -123,12 +123,12 @@ func TextMessage(
 			log.Info("closing-response-body", "error", err)
 		}
 	}()
-	elapsed := time.Since(start)
+	elapsed := time.Since(start).Round(time.Millisecond)
 	redacted := RedactURL(resp.Request.URL)
 	log.Debug(
-		"http-request",
+		"posted-to-chat",
 		"url", redacted,
-		"status", resp.StatusCode,
+		"status-code", resp.StatusCode,
 		"duration", elapsed,
 	)
 	if resp.StatusCode != http.StatusOK {
