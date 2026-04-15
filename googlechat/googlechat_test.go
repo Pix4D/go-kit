@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/marco-m/rosina/assert"
+	"github.com/marco-m/rosina/check"
 
 	"github.com/Pix4D/go-kit/googlechat"
 	"github.com/Pix4D/go-kit/internal/testutils"
@@ -36,6 +37,13 @@ func TestTextMessageIntegration(t *testing.T) {
 
 	assert.NoError(t, err, "TextMessage")
 	assert.Contains(t, reply.Text, text, "TextMessage reply")
+
+	// Assert that the fields observed as filled are still returned filled.
+	// When these tests fail, it might mean that the API has changed.
+	// SECURITY Be careful not to reveal too much! We do not want to leak the webhook!
+	check.True(t, reply.Name != "", "reply.Name not empty")
+	check.True(t, reply.Thread.Name != "", "reply.Thread.Name not empty")
+	check.True(t, reply.Space.Name != "", "reply.Space.Name not empty")
 }
 
 func TestTextMessageRetryDueToStatusCodeAndPass(t *testing.T) {
@@ -148,4 +156,18 @@ func TestRedactString(t *testing.T) {
 	have := googlechat.RedactURLString(hook)
 
 	assert.Equal(t, have, want, "RedactURLString")
+}
+
+// Test is a bit silly because it has to duplicate the logic of the SUT.
+func TestMessageReplySpaceURL(t *testing.T) {
+	test := func(desc, name, want string) {
+		t.Helper()
+		var reply googlechat.MessageReply
+		reply.Space.Name = name
+		check.Equal(t, reply.SpaceURL(), want, desc)
+	}
+
+	test("correct", "spaces/banana", "https://chat.google.com/u/0/app/chat/banana")
+	test("empty", "", "space-not-parseable")
+	test("buggy", "foobar", "space-not-parseable")
 }
