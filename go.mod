@@ -1,6 +1,6 @@
 module github.com/Pix4D/go-kit
 
-go 1.26.2
+go 1.26.7
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.3.0
