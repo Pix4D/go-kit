@@ -6,8 +6,8 @@ You are welcome to use them. On the other hand, please be aware that any feature
 
 The guiding rules are:
 
-- as simple as possible
-- zero or as few dependencies as possible
+- as simple as possible;
+- zero or as few dependencies as possible.
 
 Please open a ticket before doing any work towards a PR.
 
