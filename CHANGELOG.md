@@ -19,6 +19,8 @@ when updating the CHANGELOG for a release.
 
 ## [Unreleased]
 
+- Update to Go 1.27.4 to address Go stdlib security vulnerabilities.
+
 ## [v0.4.0] 2026-04-15
 
 ### Breaking changes
